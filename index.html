@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bronte P&amp;C — Bronte Public School Parents &amp; Citizens Association</title>
+<meta name="description" content="The Bronte Public School P&amp;C — parents making school life warmer, easier and more fun. Events, volunteering, services, projects, meetings and how to help.">
+<link rel="icon" href="assets/bronte-crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:#FFFDF7;color:#18323A;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none;}
+  input,textarea,select,button{font-family:inherit;font-size:inherit;}
+  .mobile-bar{display:none;}
+  .nav-hamb{display:none;}
+  .mobile-pad{display:none;}
+  .quick-link,.sponsor-link,.news-card{transition:border-color .15s ease,background .15s ease;}
+  .quick-link:hover{border-color:#0059A8 !important;background:#f5faff !important;}
+  .sponsor-link:hover{border-color:#0059A8 !important;}
+  .news-card:hover{border-color:#0059A8 !important;}
+  a[data-go],button{cursor:pointer;}
+  @media (max-width:880px){
+    .nav-links{display:none !important;}
+    .nav-hamb{display:inline-flex !important;}
+    .cta-desktop{display:none !important;}
+    .mobile-bar{display:flex !important;}
+    .mobile-pad{display:block !important;}
+    .hero-h1{font-size:52px !important;}
+    .sec-pad{padding-top:52px !important;padding-bottom:52px !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+
+/* ----------------------------------------------------------------------------
+   Bronte P&C website — static, no-build single-page site.
+   State drives a full re-render of #app; interactions dispatch via delegated
+   click/submit listeners using data-* attributes. Forms are uncontrolled
+   (read on submit) so typing never loses focus across re-renders.
+---------------------------------------------------------------------------- */
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return esc(s).replace(/"/g,'&quot;'); }
+function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+var HUMANITIX_JOIN = 'https://events.humanitix.com/bronte-public-school-p-and-c-association-2026-membership/tickets';
+var HUMANITIX_HOST = 'https://events.humanitix.com/host/60a3ccc0488fde000a6de018';
+
+/* ---------- state ---------- */
+var state = {
+  page: 'home',
+  menuOpen: false,
+  acc: {},
+  serviceTab: 'canteen',
+  eventFilter: 'all',
+  newsFilter: 'All',
+  volDone: false,
+  spDone: false,
+  ctDone: false,
+};
+
+/* ---------- data ---------- */
+var NAV = [
+  { label:"What's On", page:'whatson' },
+  { label:'New Families', page:'new' },
+  { label:'Get Involved', page:'involved' },
+  { label:'Services', page:'services' },
+  { label:'Projects & Impact', page:'projects' },
+  { label:'Meetings', page:'meetings' },
+  { label:'Donate / Sponsor', page:'donate' },
+];
+
+var QUICK = [
+  { label:'Before & After Care (BAC)', desc:'Bookings & contact', icon:'☀', url:'https://bronteactivitycentreoosh.com/', ext:true },
+  { label:'Canteen — order online', desc:'Flexischools', icon:'🍎', url:'https://www.flexischools.com.au/parents', ext:true },
+  { label:'Uniforms (PSW)', desc:'New uniform ordering', icon:'👕', url:'https://www.psw.com.au/', ext:true },
+  { label:'Class WhatsApp groups', desc:'How to join your class chat', icon:'💬', page:'new' },
+  { label:'Buy event tickets', desc:'Humanitix', icon:'🎟', url:HUMANITIX_HOST, ext:true },
+  { label:'School calendar', desc:'Term dates & events', icon:'📅', url:'https://online.schoolbytes.education/calendar_page/1586/2050/a3723c70-1839-4034-8de0-23c1a18347d6', ext:true },
+  { label:'Meeting minutes', desc:'Agendas, minutes & actions', icon:'📋', page:'meetings' },
+  { label:'Second-hand uniforms', desc:'P&C uniform shop', icon:'♻', page:'services' },
+];
+
+var POSSIBLE = [
+  { icon:'🎉', title:'Community events', desc:'Breakfasts, discos, colour runs and BBQs that bring families together.' },
+  { icon:'🎵', title:'Music & CAPA', desc:'Backing the band program and creative & performing arts.' },
+  { icon:'☀', title:'Before & after care', desc:'Supporting BAC so working families have somewhere warm to land.' },
+  { icon:'🍎', title:'Canteen', desc:'A healthy, well-run canteen the whole school can rely on.' },
+  { icon:'👕', title:'Uniforms', desc:'Affordable new and second-hand uniforms, less waste.' },
+  { icon:'❄', title:'Hall upgrades', desc:'Cooling and comfort so the hall works year-round.' },
+  { icon:'🎨', title:'Murals & grounds', desc:'The artwork and outdoor spaces that make Bronte, Bronte.' },
+  { icon:'🤝', title:'Connection', desc:'New-family welcomes, class chats and a friendlier gate.' },
+];
+
+var HELP = [
+  { time:'5 minutes', title:'From your phone', desc:'Share a post, reply to a new parent’s question, or RSVP to an event.' },
+  { time:'30 minutes', title:'On the day', desc:'Help set up or pack down, sort the second-hand uniform tub, plate up food.' },
+  { time:'One event', title:'Lend a hand once', desc:'BBQ, breakfast, colour run, disco or trivia — done, no ongoing strings.' },
+  { time:'From home', title:'Skills, not shifts', desc:'Grants research, design, copywriting or sponsorship outreach in your own time.' },
+  { time:'A real role', title:'Go deeper', desc:'Class parent, subcommittee, treasurer support or BAC transition help.' },
+];
+
+var EVENTS = [
+  { id:'colour-run', title:'Bronte Colour Run', date:'2026-09-05', dateLabel:'Fri 5 Sep 2026', time:'Afternoon', location:'School oval', cat:'Event', status:'upcoming', blurb:'Our most colourful fundraiser — laps, powder paint and a whole-school party.', cta:'Tickets on Humanitix', url:HUMANITIX_HOST, vol:'Need 12 helpers on paint stations & finish line.' },
+  { id:'botb', title:'Parents’ Battle of the Bands', date:'2026-10-25', dateLabel:'Sat 25 Oct 2026', time:'7:00pm', location:'The Field, Easts Rugby', cat:'Event', status:'upcoming', blurb:'Bronte parent bands go head to head for glory and a very good cause.', cta:'Tickets & band sign-up', url:'https://parentsbattleofthebands.com/', vol:'Need a stage manager and door/ticket crew.' },
+  { id:'centenary', title:'Centenary Denim Party', date:'2026-11-21', dateLabel:'Sat 21 Nov 2026', time:'Evening', location:'School hall', cat:'Event', status:'upcoming', blurb:'A denim-and-disco celebration of the school community. Bricks, badges and a big night.', cta:'Save the date', url:HUMANITIX_HOST, vol:'Decor crew & raffle coordinator wanted.' },
+  { id:'meeting5', title:'P&C General Meeting #5', date:'2026-08-12', dateLabel:'Tue 12 Aug 2026', time:'7:00pm', location:'School library (and online)', cat:'Meeting', status:'upcoming', blurb:'Term 3 general meeting. All welcome — $2 members can vote. Agenda published one week prior.', cta:'See agenda & details', url:'', page:'meetings', vol:'' },
+  { id:'trivia', title:'Trivia Night (proposed)', date:'2026-09-19', dateLabel:'Term 3 — TBC', time:'7:00pm', location:'TBC', cat:'Event', status:'proposal', blurb:'A grown-ups’ trivia fundraiser. We’re testing dates and venues — keen to run it?', cta:'Volunteer to help plan', url:'', page:'involved', vol:'Looking for a quizmaster & a small organising crew.' },
+  { id:'brainwave', title:'BrAInwave — Community AI Festival (proposed)', date:'2026-11-01', dateLabel:'Term 4 — TBC', time:'TBC', location:'TBC', cat:'Event', status:'proposal', blurb:'A family-friendly festival exploring creativity and technology. Concept stage — feedback welcome.', cta:'Share your thoughts', url:'', page:'involved', vol:'Seeking parents in tech, design & events.' },
+  { id:'mday-bfast', title:'Mother’s Day Breakfast', date:'2026-05-08', dateLabel:'Fri 8 May 2026', time:'Before school', location:'School courtyard', cat:'Event', status:'past', blurb:'Coffee, pastries and 300+ smiling families before the bell. A gorgeous morning.', cta:'See the recap', url:'', page:'whatson', vol:'' },
+  { id:'mday-soiree', title:'Mother’s Day Disco Soirée', date:'2026-05-09', dateLabel:'Sat 9 May 2026', time:'Evening', location:'School hall', cat:'Event', status:'past', blurb:'A sold-out night of dancing and raffles. Thank you to everyone who came and helped.', cta:'See the recap', url:'', page:'whatson', vol:'' },
+  { id:'welcome-bbq', title:'Welcome BBQ', date:'2026-02-13', dateLabel:'Fri 13 Feb 2026', time:'After school', location:'School oval', cat:'Event', status:'past', blurb:'Kicked off the year with sausages, new-family welcomes and a lot of name-tags.', cta:'See the recap', url:'', page:'whatson', vol:'' },
+];
+
+var PROJECTS = [
+  { id:'cooling', title:'Hall & Canteen Cooling', status:'In progress', priority:'High', summary:'The hall and canteen get brutally hot in summer. We’re costing fans and cooling so assemblies, events and food prep stay comfortable.', milestone:'Quotes to the August meeting for a funding vote.', help:'Know an HVAC or electrical contractor? Intros welcome.' },
+  { id:'bac', title:'BAC Transition', status:'Under review', priority:'High', summary:'Exploring whether the P&C should run Before & After Care as a not-for-profit service for the school community.', milestone:'Survey results reviewed; seeking 2–3 committed parent volunteers before proceeding.', help:'We need parents with governance, finance or childcare experience.' },
+  { id:'dishwasher', title:'Canteen Dishwasher & Compliance', status:'Funded', priority:'Medium', summary:'A commercial dishwasher and compliance support to keep the canteen efficient and up to standard.', milestone:'Install scheduled; final compliance sign-off pending.', help:'Mostly handled — thank you to everyone who chipped in.' },
+  { id:'mural', title:'Mural Grant', status:'Grant pending', priority:'Medium', summary:'Applying for a grant to commission a new community mural building on the school’s blue-and-yellow identity.', milestone:'Grant decision expected next term.', help:'Artists & grant-writers, we’d love your help.' },
+  { id:'fencing', title:'Perimeter Fencing / Share Our Space', status:'Advocacy', priority:'Medium', summary:'Supporting safe fencing and the Share Our Space program so grounds are secure and usable out of hours.', milestone:'Working with the school on the application.', help:'Add your voice at the next meeting.' },
+  { id:'capa', title:'CAPA & Music Support', status:'Ongoing', priority:'Medium', summary:'Funding instruments, tutors and performance opportunities for the band and creative arts programs.', milestone:'Term 3 instrument list being finalised.', help:'Donate gently-used instruments or sponsor a tutor.' },
+  { id:'band', title:'Parent Band & Lost Property', status:'Community', priority:'Low', summary:'Backing the parent band “Lost Property” and tidying the school’s (literal) lost property system.', milestone:'Battle of the Bands set in October.', help:'Musicians welcome — and please claim your kid’s jumper.' },
+  { id:'centenary', title:'Centenary Bricks & Merch', status:'On sale', priority:'Low', summary:'Engraved bricks and Bronte merch (towels, totes) celebrating the school community and raising funds.', milestone:'Brick orders open through Term 4.', help:'Buy a brick or a towel — every one counts.' },
+  { id:'playground', title:'Outdoor Equipment & Playground', status:'Planning', priority:'Medium', summary:'Improving play equipment and shaded outdoor areas for active, happy breaks.', milestone:'Gathering student & teacher wish-lists.', help:'Landscapers & shade-sail installers, get in touch.' },
+  { id:'library', title:'Library, Tech & Classroom Resources', status:'Ongoing', priority:'Low', summary:'Topping up books, technology and classroom supplies where the school budget falls short.', milestone:'Teacher requests reviewed each term.', help:'Donate books or sponsor a classroom set.' },
+];
+
+var VROLES = [
+  { time:'5 minutes', title:'Share & welcome', loc:'Anywhere', skills:'A phone', desc:'Share P&C posts, answer a new parent’s question in your class chat, RSVP early to events.' },
+  { time:'30 minutes', title:'Set up & pack down', loc:'At school', skills:'Willing hands', desc:'Help before or after an event, sort the second-hand uniform tub, replenish supplies.' },
+  { time:'One event', title:'Event crew', loc:'At the event', skills:'None required', desc:'BBQ, breakfast, colour run, disco or trivia. Pick one, help out, go home a hero.' },
+  { time:'From home', title:'Behind the scenes', loc:'Your couch', skills:'Design, writing, research', desc:'Grants research, graphic design, copy, sponsorship outreach — on your own schedule.' },
+  { time:'Professional skill', title:'Lend your expertise', loc:'Flexible', skills:'Finance, legal, building, comms, photography, grants', desc:'Short, specific asks that use what you’re already great at.' },
+  { time:'Ongoing role', title:'Join the team', loc:'Committee', skills:'Commitment & care', desc:'Class parent, subcommittee, meeting support or BAC transition support.' },
+];
+
+var SPONSORS = [
+  { name:'The Field at Easts Rugby', tier:'Event Sponsor', web:'https://thefieldbar.com.au/', offer:'Venue & hospitality for Battle of the Bands.', confirmed:true },
+  { name:'Parents’ Battle of the Bands', tier:'Event Partner', web:'https://parentsbattleofthebands.com/', offer:'Brings the parent-band fundraiser to Bronte.', confirmed:true },
+  { name:'Humanitix', tier:'Platform Partner', web:HUMANITIX_HOST, offer:'Ticketing platform that donates booking fees to education.', confirmed:true },
+  { name:'Cohort Coffee Roasters', tier:'Local Business Supporter', web:'#', offer:'Coffee for community mornings (to be confirmed).', confirmed:false },
+  { name:'Beach Road Hotel', tier:'Local Business Supporter', web:'#', offer:'Prize & raffle support (to be confirmed).', confirmed:false },
+  { name:'Lost Property (parent band)', tier:'In-kind Donor', web:'#', offer:'Live music for school events (to be confirmed).', confirmed:false },
+];
+
+var COMMITTEE = [
+  { role:'Co-President', name:'Lisa Gillespie' },
+  { role:'Co-President', name:'Tamara Ihnen' },
+  { role:'VP Events', name:'Tegan Natoli' },
+  { role:'VP Grants', name:'David Dawson' },
+  { role:'Treasurer', name:'Terrie Fok' },
+  { role:'Secretary', name:'Phil Jacob' },
+  { role:'BAC Liaison', name:'Aoife Kemp' },
+];
+
+var MEETINGS = [
+  { id:'m5', label:'General Meeting #5', date:'Tue 12 Aug 2026, 7:00pm', status:'upcoming', summary:'Term 3 meeting. Cooling quotes, BAC transition update, Colour Run readiness. Agenda one week prior.' },
+  { id:'m4', label:'General Meeting #4', date:'Mon 15 Jun 2026, 7:00pm', status:'past', summary:'Reviewed BAC survey results, approved canteen dishwasher funding, set Term 3 events.' },
+  { id:'m3', label:'General Meeting #3', date:'Tue 13 May 2026, 7:00pm', status:'past', summary:'Mother’s Day events wrap-up, grants pipeline, mural application progress.' },
+  { id:'m2', label:'General Meeting #2', date:'Tue 25 Mar 2026, 7:00pm', status:'past', summary:'Budget for the year approved, subcommittees confirmed, Welcome BBQ debrief.' },
+  { id:'m1', label:'AGM & General Meeting #1', date:'Tue 18 Feb 2026, 7:00pm', status:'past', summary:'New committee elected, 2026 priorities set, membership drive launched.' },
+];
+
+var UPDATES = [
+  { title:'BAC survey results are in', date:'16 Jun 2026', cat:'BAC', summary:'Strong support for a P&C-run before & after care service — but we need 2–3 committed volunteers to proceed.', page:'services' },
+  { title:'Canteen dishwasher funded', date:'15 Jun 2026', cat:'Canteen', summary:'The committee approved funding for a commercial dishwasher to keep Chika’s Kitchen running smoothly.', page:'services' },
+  { title:'Colour Run is locked in for September', date:'10 Jun 2026', cat:'Events', summary:'Friday 5 September. Tickets and volunteer call-outs open soon — mark your calendar.', page:'whatson' },
+  { title:'Mother’s Day weekend: thank you', date:'12 May 2026', cat:'Events', summary:'Breakfast and the Disco Soirée were a sell-out. Huge thanks to every helper and donor.', page:'whatson' },
+  { title:'Mural grant application submitted', date:'8 May 2026', cat:'Grants', summary:'We’ve applied for funding for a new community mural in the school’s blue-and-yellow palette.', page:'projects' },
+  { title:'New family WhatsApp guide', date:'1 Feb 2026', cat:'New Families', summary:'A simple guide to joining your class chat and finding your people in week one.', page:'new' },
+  { title:'2026 committee elected at the AGM', date:'18 Feb 2026', cat:'Meetings', summary:'Meet your co-presidents, VPs, treasurer, secretary and BAC liaison for the year.', page:'meetings' },
+  { title:'The Field signs on for Battle of the Bands', date:'20 Apr 2026', cat:'Sponsors', summary:'Thanks to The Field at Easts Rugby for hosting our biggest parent night of the year.', page:'donate' },
+];
+
+var NF_CHECKLIST = [
+  { t:'Enrol your child', b:'Enrolment runs through the school, not the P&C. Start on the school’s enrolment page and book a tour to see Bronte in person.' },
+  { t:'Join your class WhatsApp group', b:'Each class has a parent chat for reminders, lost jumpers and “is it mufti day?”. Ask your class parent or email us and we’ll point you to the right group.' },
+  { t:'Set up canteen ordering', b:'Chika’s Kitchen runs the canteen Wed–Fri. Order online via Flexischools the night before (or by 8:15am on the day), or buy snacks over the counter at recess and lunch.' },
+  { t:'Sort uniforms', b:'Buy new uniforms through PSW online. For second-hand, visit the P&C uniform shop and the donation tub outside Level 2 of Block B.' },
+  { t:'Understand before & after care (BAC)', b:'BAC is the school’s not-for-profit care service: before care 7:15–9:00am, after care 3:00–6:00pm, and vacation care 8:30am–5:30pm. Book directly with BAC.' },
+  { t:'Come to a first event', b:'The Welcome BBQ, a coffee morning or a disco is the easiest way to meet people. You don’t need to know anyone — that’s the point.' },
+  { t:'Join the P&C for $2', b:'Two dollars makes you a member: you can vote at meetings and help shape the school. No big commitment required.' },
+];
+
+var NF_WISH = [
+  { t:'You don’t have to do everything', b:'Pick one small thing and ignore the rest. The school runs fine; the P&C just makes it warmer.' },
+  { t:'The class chat is gold', b:'90% of “what’s going on?” is answered there. Join it in week one.' },
+  { t:'Second-hand uniforms are great', b:'Kids grow fast. The uniform tub will save you a fortune — and there’s no shame in it.' },
+  { t:'Events are how you find your people', b:'Show up to one BBQ or breakfast and the gate suddenly feels friendlier.' },
+  { t:'Meetings are friendlier than they sound', b:'No experience needed, you can just listen, and $2 gets you a vote. Online option too.' },
+];
+
+var PALETTE = [
+  {name:'Bronte Blue', hex:'#0059A8'}, {name:'Deep Navy', hex:'#002B7F'}, {name:'Bronte Yellow', hex:'#FFD928'},
+  {name:'Soft Sky', hex:'#9DC9E2'}, {name:'Warm White', hex:'#FFFDF7'}, {name:'Concrete', hex:'#D8D2C4'}, {name:'Ink', hex:'#18323A'},
+];
+
+var SPONSOR_TIERS = [
+  {name:'Major Project Sponsor', desc:'back a flagship project like hall cooling or the mural.'},
+  {name:'Event Sponsor', desc:'put your name to the Colour Run, breakfast or Battle of the Bands.'},
+  {name:'Local Business Supporter', desc:'an ongoing local partner of the school community.'},
+  {name:'Prize / Auction Donor', desc:'donate a prize or experience for raffles and auctions.'},
+  {name:'In-kind Donor', desc:'goods, services or venues instead of cash.'},
+  {name:'Parent Business Directory', desc:'a listing for parent-run businesses in our community.'},
+];
+
+/* status -> [textColor, bgColor] */
+function badge(status){
+  var map = {
+    'In progress':['#0059A8','#eaf3fb'], 'Under review':['#b06a00','#fdf1dc'], 'Funded':['#1f7a4d','#e3f5ea'],
+    'Grant pending':['#b06a00','#fdf1dc'], 'Advocacy':['#0059A8','#eaf3fb'], 'Ongoing':['#1f7a4d','#e3f5ea'],
+    'Community':['#0059A8','#eaf3fb'], 'On sale':['#1f7a4d','#e3f5ea'], 'Planning':['#0059A8','#eaf3fb']
+  };
+  var c = map[status] || ['#0059A8','#eaf3fb'];
+  return { statusColor:c[0], statusBg:c[1] };
+}
+var EVENT_TINTS = { upcoming:['#1f7a4d','#e3f5ea','Upcoming'], proposal:['#b06a00','#fdf1dc','Proposed'], past:['#6b7780','#eef0ee','Past event'] };
+
+function navStyle(active){
+  return 'padding:9px 12px;border-radius:999px;font-weight:700;font-size:14.5px;'+(active?'background:rgba(255,253,247,0.16);color:#FFD928;':'color:rgba(255,253,247,0.92);');
+}
+function imgPh(label){
+  return '<div style="position:absolute;inset:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(45deg,#9DC9E2 0px,#9DC9E2 11px,#b6d6e9 11px,#b6d6e9 22px);">'
+    + '<span style="font-family:\'Spline Sans Mono\',ui-monospace,monospace;font-size:12px;letter-spacing:0.04em;color:#0d3a57;background:rgba(255,253,247,0.82);padding:5px 10px;border-radius:999px;text-transform:lowercase;max-width:80%;text-align:center;line-height:1.3;">'
+    + esc(label) + '</span></div>';
+}
+
+/* ---------- shared chrome ---------- */
+function renderHeader(){
+  var links = NAV.map(function(n){
+    return '<a href="#" data-go="'+n.page+'" style="'+navStyle(state.page===n.page)+'">'+esc(n.label)+'</a>';
+  }).join('');
+  return ''
+  + '<header style="position:sticky;top:0;z-index:40;background:#0059A8;color:#FFFDF7;box-shadow:0 2px 0 rgba(0,0,0,0.06);">'
+  +   '<div style="max-width:1200px;margin:0 auto;padding:0 24px;height:68px;display:flex;align-items:center;gap:20px;">'
+  +     '<a href="#" data-go="home" style="display:flex;align-items:center;gap:11px;flex:none;">'
+  +       '<span style="width:44px;height:44px;border-radius:11px;background:#FFFDF7;display:flex;align-items:center;justify-content:center;flex:none;padding:3px;"><img src="assets/bronte-crest.png" alt="Bronte Public School crest" style="height:100%;width:auto;display:block;"></span>'
+  +       '<span style="font-family:\'Fraunces\';font-weight:700;font-size:20px;letter-spacing:-0.01em;">Bronte P&amp;C</span>'
+  +     '</a>'
+  +     '<nav class="nav-links" style="display:flex;align-items:center;gap:4px;margin-left:8px;flex:1;">'+links+'</nav>'
+  +     '<div class="cta-desktop" style="display:flex;align-items:center;gap:9px;flex:none;">'
+  +       '<a href="'+HUMANITIX_JOIN+'" target="_blank" rel="noopener" style="background:#FFD928;color:#002B7F;font-weight:800;font-size:14px;padding:9px 15px;border-radius:999px;">Join for $2</a>'
+  +       '<a href="#" data-go="involved" style="border:1.5px solid rgba(255,253,247,0.5);color:#FFFDF7;font-weight:700;font-size:14px;padding:8px 14px;border-radius:999px;">Volunteer</a>'
+  +     '</div>'
+  +     '<button class="nav-hamb" data-act="toggleMenu" aria-label="Menu" aria-expanded="'+(state.menuOpen?'true':'false')+'" style="align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1.5px solid rgba(255,253,247,0.45);background:transparent;color:#FFFDF7;font-size:20px;">☰</button>'
+  +   '</div>'
+  + '</header>';
+}
+
+function renderMobileMenu(){
+  if(!state.menuOpen) return '';
+  var links = NAV.map(function(n){
+    return '<a href="#" data-go="'+n.page+'" style="display:block;padding:15px 4px;font-size:20px;font-weight:700;font-family:\'Fraunces\';border-bottom:1px solid rgba(255,253,247,0.16);">'+esc(n.label)+'</a>';
+  }).join('');
+  return ''
+  + '<div class="mobile-menu" style="position:fixed;inset:68px 0 0 0;z-index:39;background:#0059A8;color:#FFFDF7;padding:18px 24px;overflow:auto;">'
+  +   links
+  +   '<div style="display:flex;gap:10px;margin-top:20px;">'
+  +     '<a href="'+HUMANITIX_JOIN+'" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#FFD928;color:#002B7F;font-weight:800;padding:14px;border-radius:999px;">Join for $2</a>'
+  +     '<a href="#" data-go="involved" style="flex:1;text-align:center;border:1.5px solid rgba(255,253,247,0.5);font-weight:700;padding:14px;border-radius:999px;">Volunteer</a>'
+  +   '</div>'
+  + '</div>';
+}
+
+function renderFooter(){
+  var footerNav = NAV.concat([{label:'News & Updates',page:'news'},{label:'Contact',page:'contact'},{label:'Style guide',page:'style'}])
+    .map(function(n){ return '<a href="#" data-go="'+n.page+'" style="display:block;font-size:14.5px;padding:5px 0;">'+esc(n.label)+'</a>'; }).join('');
+  return ''
+  + '<footer style="background:#002B7F;color:rgba(255,253,247,0.85);">'
+  +   '<div style="max-width:1200px;margin:0 auto;padding:54px 24px 30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:34px;">'
+  +     '<div>'
+  +       '<div style="display:flex;align-items:center;gap:10px;">'
+  +         '<span style="width:40px;height:40px;border-radius:10px;background:#FFFDF7;display:flex;align-items:center;justify-content:center;flex:none;padding:3px;"><img src="assets/bronte-crest.png" alt="Bronte Public School crest" style="height:100%;width:auto;display:block;"></span>'
+  +         '<span style="font-family:\'Fraunces\';font-weight:700;font-size:19px;color:#FFFDF7;">Bronte P&amp;C</span>'
+  +       '</div>'
+  +       '<p style="font-size:13.5px;line-height:1.55;margin:14px 0 0;max-width:30ch;">Bronte Public School Parents &amp; Citizens Association. Warm, practical, community-led.</p>'
+  +       '<p style="font-size:12px;color:rgba(255,253,247,0.55);margin:12px 0 0;font-family:\'Spline Sans Mono\',monospace;">ABN 44 706 118 770 · Registered charity (ACNC)</p>'
+  +     '</div>'
+  +     '<div>'
+  +       '<strong style="display:block;color:#FFD928;font-size:13px;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:12px;">Explore</strong>'+footerNav
+  +     '</div>'
+  +     '<div>'
+  +       '<strong style="display:block;color:#FFD928;font-size:13px;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:12px;">Contact</strong>'
+  +       '<a href="mailto:brontepandc@gmail.com" style="display:block;font-size:14.5px;padding:5px 0;">brontepandc@gmail.com</a>'
+  +       '<a href="https://www.instagram.com/brontepandc/" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Instagram @brontepandc</a>'
+  +       '<a href="https://www.facebook.com/BrontePandC" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Facebook /BrontePandC</a>'
+  +       '<a href="#" data-go="contact" style="display:block;font-size:14.5px;padding:5px 0;">All contacts →</a>'
+  +     '</div>'
+  +     '<div>'
+  +       '<strong style="display:block;color:#FFD928;font-size:13px;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:12px;">External</strong>'
+  +       '<a href="https://bronte-p.schools.nsw.gov.au/" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Bronte Public School ↗</a>'
+  +       '<a href="https://bronteactivitycentreoosh.com/" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Bronte Activity Centre (BAC) ↗</a>'
+  +       '<a href="https://www.flexischools.com.au/parents" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Canteen — Flexischools ↗</a>'
+  +       '<a href="https://www.psw.com.au/" target="_blank" rel="noopener" style="display:block;font-size:14.5px;padding:5px 0;">Uniforms — PSW ↗</a>'
+  +     '</div>'
+  +   '</div>'
+  +   '<div style="border-top:1px solid rgba(255,253,247,0.14);padding:18px 24px;text-align:center;font-size:12.5px;color:rgba(255,253,247,0.55);">Built for the Bronte P&amp;C committee · Payments &amp; bookings stay on their existing external platforms.</div>'
+  + '</footer>';
+}
+
+function renderMobileBar(){
+  return ''
+  + '<div class="mobile-pad" style="height:66px;"></div>'
+  + '<nav class="mobile-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:45;background:#0059A8;border-top:2px solid #FFD928;padding:9px 12px;gap:9px;box-shadow:0 -6px 20px rgba(0,16,48,0.18);">'
+  +   '<a href="#" data-go="whatson" style="flex:1;text-align:center;color:#FFFDF7;font-weight:700;font-size:13.5px;padding:9px 4px;border-radius:12px;">What\'s On</a>'
+  +   '<a href="'+HUMANITIX_JOIN+'" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#FFD928;color:#002B7F;font-weight:800;font-size:13.5px;padding:9px 4px;border-radius:12px;">Join</a>'
+  +   '<a href="#" data-go="involved" style="flex:1;text-align:center;border:1.5px solid rgba(255,253,247,0.5);color:#FFFDF7;font-weight:700;font-size:13.5px;padding:9px 4px;border-radius:12px;">Volunteer</a>'
+  + '</nav>';
+}
+
+/* small section-heading helper for hero banners on inner pages */
+function pageHero(pill, title, blurb, extraHtml){
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px '+(extraHtml?'30px':'44px')+';">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">'+esc(pill)+'</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">'+esc(title)+'</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:56ch;margin:14px 0 '+(extraHtml?'18px':'0')+';color:rgba(255,253,247,0.92);">'+esc(blurb)+'</p>'
+  +     (extraHtml||'')
+  +   '</div>'
+  + '</section>';
+}
+
+/* ---------- pages ---------- */
+function pageHome(){
+  var thisTerm = [
+    { kicker:'Next meeting', color:'#0059A8', title:'General Meeting #5', detail:'Tue 12 Aug 2026, 7:00pm — library & online. All welcome.', cta:'Details', page:'meetings' },
+    { kicker:'Next event', color:'#b06a00', title:'Bronte Colour Run', detail:'Fri 5 Sep 2026. Tickets & volunteer call opening soon.', cta:'What’s On', page:'whatson' },
+    { kicker:'Current project', color:'#1f7a4d', title:'Hall & Canteen Cooling', detail:'Costing fans & cooling for a comfortable hall year-round.', cta:'See projects', page:'projects' },
+    { kicker:'Urgent need', color:'#c0392b', title:'2–3 BAC volunteers', detail:'Needed before the P&C can take the BAC transition forward.', cta:'Help out', page:'involved' },
+  ];
+  var termCards = thisTerm.map(function(card){
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;">'
+      + '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase;color:'+card.color+';font-weight:500;">'+esc(card.kicker)+'</span>'
+      + '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:21px;line-height:1.15;color:#18323A;">'+esc(card.title)+'</strong>'
+      + '<span style="font-size:14px;color:#52636b;line-height:1.4;flex:1;">'+esc(card.detail)+'</span>'
+      + '<a href="#" data-go="'+card.page+'" style="font-weight:700;font-size:14px;color:#0059A8;margin-top:4px;">'+esc(card.cta)+' →</a>'
+      + '</div>';
+  }).join('');
+
+  var quickCards = QUICK.map(function(q){
+    var attrs = q.page ? ('href="#" data-go="'+q.page+'"') : ('href="'+escAttr(q.url)+'" target="_blank" rel="noopener"');
+    return '<a class="quick-link" '+attrs+' style="display:flex;align-items:center;gap:13px;background:#fff;border:1.5px solid #ece7da;border-radius:16px;padding:15px 16px;">'
+      + '<span style="width:38px;height:38px;flex:none;border-radius:11px;background:#eaf3fb;color:#0059A8;display:flex;align-items:center;justify-content:center;font-size:18px;">'+esc(q.icon)+'</span>'
+      + '<span style="display:flex;flex-direction:column;line-height:1.25;">'
+      +   '<strong style="font-weight:700;font-size:15px;color:#18323A;">'+esc(q.label)+'</strong>'
+      +   '<small style="color:#7a8890;font-size:12.5px;">'+esc(q.desc)+'</small>'
+      + '</span></a>';
+  }).join('');
+
+  var possibleCards = POSSIBLE.map(function(p){
+    return '<div style="background:rgba(255,253,247,0.07);border:1px solid rgba(255,253,247,0.16);border-radius:16px;padding:18px;">'
+      + '<div style="font-size:24px;">'+esc(p.icon)+'</div>'
+      + '<strong style="display:block;font-family:\'Fraunces\';font-weight:600;font-size:18px;margin:8px 0 4px;">'+esc(p.title)+'</strong>'
+      + '<span style="font-size:13.5px;color:rgba(255,253,247,0.78);line-height:1.4;">'+esc(p.desc)+'</span></div>';
+  }).join('');
+
+  var helpCards = HELP.map(function(w){
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;border-top:5px solid #FFD928;">'
+      + '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#0059A8;font-weight:500;">'+esc(w.time)+'</span>'
+      + '<strong style="display:block;font-family:\'Fraunces\';font-weight:600;font-size:20px;margin:6px 0 6px;color:#18323A;">'+esc(w.title)+'</strong>'
+      + '<span style="font-size:14px;color:#52636b;line-height:1.45;">'+esc(w.desc)+'</span></div>';
+  }).join('');
+
+  var homeProjects = PROJECTS.slice(0,5).map(function(p){
+    var b = badge(p.status);
+    return '<div style="background:#FFFDF7;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:9px;">'
+      + '<span style="align-self:flex-start;font-size:11.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:'+b.statusBg+';color:'+b.statusColor+';">'+esc(p.status)+'</span>'
+      + '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:20px;line-height:1.15;color:#18323A;">'+esc(p.title)+'</strong>'
+      + '<span style="font-size:13.5px;color:#52636b;line-height:1.45;flex:1;">'+esc(p.summary)+'</span>'
+      + '<a href="#" data-go="projects" style="font-weight:700;font-size:13.5px;color:#0059A8;">How to help →</a></div>';
+  }).join('');
+
+  var sponsorTiles = SPONSORS.map(function(s){
+    return '<div style="aspect-ratio:3/2;background:#fff;border:1.5px solid #ece7da;border-radius:16px;display:flex;align-items:center;justify-content:center;padding:14px;text-align:center;">'
+      + '<span style="font-family:\'Fraunces\';font-weight:600;font-size:16px;color:#18323A;line-height:1.15;">'+esc(s.name)+'</span></div>';
+  }).join('');
+
+  return ''
+  // HERO
+  + '<section style="position:relative;background:#0059A8;color:#FFFDF7;overflow:hidden;">'
+  +   '<div style="position:absolute;top:-60px;right:-40px;width:280px;height:280px;border-radius:50%;background:rgba(255,217,40,0.14);"></div>'
+  +   '<div class="sec-pad" style="position:relative;max-width:1200px;margin:0 auto;padding:70px 24px 110px;">'
+  +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:52px;align-items:center;">'
+  +       '<div>'
+  +         '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:13px;letter-spacing:0.02em;padding:6px 13px;border-radius:999px;white-space:nowrap;">Parent-run · Bronte Public School</span>'
+  +         '<h1 class="hero-h1" style="font-family:\'Fraunces\';font-weight:900;font-size:72px;line-height:0.98;letter-spacing:-0.02em;margin:20px 0 0;">Bronte P&amp;C</h1>'
+  +         '<p style="font-size:21px;line-height:1.45;max-width:30ch;margin:18px 0 0;color:rgba(255,253,247,0.92);">Helping make school life warmer, easier and more fun for every Bronte family.</p>'
+  +         '<div style="display:flex;flex-wrap:wrap;gap:11px;margin-top:28px;">'
+  +           '<a href="'+HUMANITIX_JOIN+'" target="_blank" rel="noopener" style="background:#FFD928;color:#002B7F;font-weight:800;font-size:16px;padding:14px 22px;border-radius:999px;">Join for $2</a>'
+  +           '<a href="#" data-go="whatson" style="background:#FFFDF7;color:#0059A8;font-weight:800;font-size:16px;padding:14px 22px;border-radius:999px;">See What\'s On</a>'
+  +           '<a href="#" data-go="involved" style="border:1.5px solid rgba(255,253,247,0.55);color:#FFFDF7;font-weight:700;font-size:16px;padding:13px 22px;border-radius:999px;">Volunteer</a>'
+  +         '</div>'
+  +         '<p style="font-size:13.5px;color:rgba(255,253,247,0.78);margin-top:20px;">$2 buys your family a vote, a say, and a warmer school. No big commitment required.</p>'
+  +       '</div>'
+  +       '<div style="position:relative;aspect-ratio:4/3;border-radius:26px;overflow:hidden;border:7px solid #FFD928;box-shadow:0 24px 50px rgba(0,16,48,0.35);">'+imgPh('Bronte mural — blue waves & yellow uniforms')+'</div>'
+  +     '</div>'
+  +   '</div>'
+  +   '<svg viewBox="0 0 1440 90" preserveAspectRatio="none" style="display:block;position:absolute;bottom:-1px;left:0;width:100%;height:70px;"><path d="M0,40 C240,90 480,5 720,35 C960,65 1200,15 1440,45 L1440,90 L0,90 Z" fill="#FFFDF7"></path></svg>'
+  + '</section>'
+  // THIS TERM
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:56px 24px 24px;">'
+  +   '<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:34px;margin:0;color:#002B7F;">This term at a glance</h2>'
+  +     '<a href="#" data-go="whatson" style="color:#0059A8;font-weight:700;font-size:15px;">Full calendar →</a>'
+  +   '</div>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:24px;">'+termCards+'</div>'
+  + '</section>'
+  // QUICK LINKS
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:40px 24px;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:34px;margin:0 0 6px;color:#002B7F;">Quick links</h2>'
+  +   '<p style="color:#52636b;margin:0 0 24px;font-size:16px;">The things parents reach for most — one tap away.</p>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">'+quickCards+'</div>'
+  + '</section>'
+  // WHAT'S POSSIBLE
+  + '<section style="background:#002B7F;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:64px 24px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:36px;margin:0 0 8px;">What your $2 and your time help make possible</h2>'
+  +     '<p style="color:rgba(255,253,247,0.82);font-size:17px;margin:0 0 30px;max-width:60ch;">The P&amp;C isn\'t a fundraising machine — it\'s parents pooling small efforts into the things that make Bronte feel like Bronte.</p>'
+  +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">'+possibleCards+'</div>'
+  +   '</div>'
+  + '</section>'
+  // HOW CAN YOU HELP
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:64px 24px;">'
+  +   '<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:36px;margin:0;color:#002B7F;">How can you help? Pick one small thing.</h2>'
+  +     '<a href="#" data-go="involved" style="color:#0059A8;font-weight:700;font-size:15px;">All the ways →</a>'
+  +   '</div>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:26px;">'+helpCards+'</div>'
+  + '</section>'
+  // CURRENT PROJECTS
+  + '<section style="background:#9DC9E2;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:60px 24px;">'
+  +     '<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:36px;margin:0;color:#002B7F;">Current projects</h2>'
+  +       '<a href="#" data-go="projects" style="color:#002B7F;font-weight:700;font-size:15px;">Projects &amp; impact →</a>'
+  +     '</div>'
+  +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:24px;">'+homeProjects+'</div>'
+  +   '</div>'
+  + '</section>'
+  // BRONTE BACKS BRONTE
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:64px 24px;text-align:center;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:900;font-size:40px;margin:0;color:#002B7F;">Bronte backs Bronte</h2>'
+  +   '<p style="color:#52636b;font-size:17px;margin:10px auto 30px;max-width:54ch;">Local businesses and parents who chip in with cash, prizes, venues and in-kind support. Want to join them?</p>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;max-width:900px;margin:0 auto;">'+sponsorTiles+'</div>'
+  +   '<a href="#" data-go="donate" style="display:inline-block;margin-top:30px;background:#0059A8;color:#fff;font-weight:800;font-size:16px;padding:14px 26px;border-radius:999px;">Become a supporter →</a>'
+  + '</section>';
+}
+
+function pageNew(){
+  var checklist = NF_CHECKLIST.map(function(it,i){
+    var n = String(i+1);
+    if(n.length<2) n='0'+n;
+    var open = !!state.acc['nf'+i];
+    return '<div style="background:#fff;border:1.5px solid #e6e1d4;border-radius:16px;overflow:hidden;">'
+      + '<button data-acc="nf'+i+'" aria-expanded="'+(open?'true':'false')+'" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 20px;background:transparent;border:none;text-align:left;">'
+      +   '<span style="width:34px;height:34px;flex:none;border-radius:9px;background:#FFD928;color:#002B7F;font-family:\'Spline Sans Mono\',monospace;font-weight:500;display:flex;align-items:center;justify-content:center;font-size:14px;">'+n+'</span>'
+      +   '<strong style="flex:1;font-family:\'Fraunces\';font-weight:600;font-size:19px;color:#18323A;">'+esc(it.t)+'</strong>'
+      +   '<span style="font-size:22px;color:#0059A8;flex:none;">'+(open?'–':'+')+'</span>'
+      + '</button>'
+      + (open ? '<p style="margin:0;padding:0 20px 20px 68px;font-size:15.5px;line-height:1.6;color:#3a4a52;">'+esc(it.b)+'</p>' : '')
+      + '</div>';
+  }).join('');
+
+  var wishCards = NF_WISH.map(function(w){
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-left:5px solid #9DC9E2;border-radius:14px;padding:18px 20px;">'
+      + '<strong style="display:block;font-family:\'Fraunces\';font-weight:600;font-size:18px;color:#18323A;margin-bottom:6px;">'+esc(w.t)+'</strong>'
+      + '<span style="font-size:14.5px;line-height:1.55;color:#52636b;">'+esc(w.b)+'</span></div>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Welcome to Bronte</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">New families, sorted in five minutes</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Whether you’re deciding if Bronte feels right or you’re starting next week — here’s everything you actually need, in order.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:54px 24px;">'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:32px;align-items:start;">'
+  +     '<div>'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 6px;color:#002B7F;">A warm welcome from the P&amp;C</h2>'
+  +       '<p style="font-size:16px;line-height:1.6;color:#3a4a52;">Bronte is a small school with a big heart. The P&amp;C is just parents — people exactly like you — making school life warmer, easier and more fun. You don’t need to know anyone or commit to anything. Start with the checklist below, come to one event, and you’ll find your people fast.</p>'
+  +       '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;">'
+  +         '<a href="https://bronte-p.schools.nsw.gov.au/about-us/enrol" target="_blank" rel="noopener" style="background:#0059A8;color:#fff;font-weight:800;font-size:15px;padding:12px 18px;border-radius:999px;">Enrolment ↗</a>'
+  +         '<a href="https://online.schoolbytes.education/published_forms/4753/50631b5d-beeb-4e38-901b-caccff1b9bfa" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:15px;padding:11px 18px;border-radius:999px;">Book a school tour ↗</a>'
+  +       '</div>'
+  +     '</div>'
+  +     '<div style="aspect-ratio:4/3;border-radius:22px;overflow:hidden;position:relative;border:6px solid #FFD928;">'+imgPh('School gate on Hewlett Street / yellow uniforms')+'</div>'
+  +   '</div>'
+  + '</section>'
+  + '<section style="background:#f3f6f1;">'
+  +   '<div class="sec-pad" style="max-width:880px;margin:0 auto;padding:54px 24px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:32px;margin:0 0 4px;color:#002B7F;">Your new-family checklist</h2>'
+  +     '<p style="color:#52636b;margin:0 0 24px;">Tap each step to expand. Do them in any order — or just the ones you need.</p>'
+  +     '<div style="display:flex;flex-direction:column;gap:12px;">'+checklist+'</div>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:54px 24px;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 20px;color:#002B7F;">What parents wish they knew before starting</h2>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">'+wishCards+'</div>'
+  +   '<div style="margin-top:30px;background:#002B7F;border-radius:20px;padding:32px;color:#FFFDF7;display:flex;flex-wrap:wrap;align-items:center;gap:20px;justify-content:space-between;">'
+  +     '<div>'
+  +       '<h3 style="font-family:\'Fraunces\';font-weight:700;font-size:24px;margin:0 0 6px;">Ready to be part of it?</h3>'
+  +       '<p style="margin:0;color:rgba(255,253,247,0.85);font-size:15.5px;">Join for $2, or come say hi at the next event.</p>'
+  +     '</div>'
+  +     '<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+  +       '<a href="'+HUMANITIX_JOIN+'" target="_blank" rel="noopener" style="background:#FFD928;color:#002B7F;font-weight:800;font-size:15px;padding:13px 20px;border-radius:999px;">Join for $2</a>'
+  +       '<a href="#" data-go="whatson" style="background:#FFFDF7;color:#0059A8;font-weight:800;font-size:15px;padding:13px 20px;border-radius:999px;">See What’s On</a>'
+  +     '</div>'
+  +   '</div>'
+  + '</section>';
+}
+
+function pageWhatsOn(){
+  var ef = state.eventFilter;
+  var filters = [['all','All'],['upcoming','Upcoming'],['proposal','Proposed'],['past','Past recaps']].map(function(p){
+    var k=p[0], l=p[1];
+    var st = 'padding:9px 16px;border-radius:999px;font-weight:700;font-size:14px;border:1.5px solid '+(ef===k?'#0059A8':'#d8d2c4')+';background:'+(ef===k?'#0059A8':'#fff')+';color:'+(ef===k?'#fff':'#18323A')+';';
+    return '<button data-evfilter="'+k+'" style="'+st+'">'+esc(l)+'</button>';
+  }).join('');
+
+  var cards = EVENTS.filter(function(e){ return ef==='all' || e.status===ef; }).map(function(e){
+    var t = EVENT_TINTS[e.status];
+    var ctaAttrs = e.url ? ('href="'+escAttr(e.url)+'" target="_blank" rel="noopener"') : (e.page ? ('href="#" data-go="'+e.page+'"') : 'href="#"');
+    var vol = e.vol ? '<span style="font-size:13px;background:#fdf6dd;border:1px solid #f0e3a8;color:#7a5b00;padding:8px 11px;border-radius:10px;line-height:1.4;">🙋 '+esc(e.vol)+'</span>' : '';
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;">'
+      + '<div style="position:relative;aspect-ratio:16/9;">'+imgPh(e.title)
+      +   '<span style="position:absolute;top:12px;left:12px;font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:5px 11px;border-radius:999px;background:'+t[1]+';color:'+t[0]+';">'+esc(t[2])+'</span>'
+      + '</div>'
+      + '<div style="padding:20px;display:flex;flex-direction:column;gap:9px;flex:1;">'
+      +   '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12.5px;color:#0059A8;font-weight:500;">'+esc(e.dateLabel)+' · '+esc(e.time)+'</span>'
+      +   '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:22px;line-height:1.12;color:#18323A;">'+esc(e.title)+'</strong>'
+      +   '<span style="font-size:13px;color:#7a8890;">📍 '+esc(e.location)+'</span>'
+      +   '<span style="font-size:14.5px;line-height:1.5;color:#52636b;flex:1;">'+esc(e.blurb)+'</span>'
+      +   vol
+      +   '<a '+ctaAttrs+' style="margin-top:4px;align-self:flex-start;background:#0059A8;color:#fff;font-weight:700;font-size:14px;padding:11px 18px;border-radius:999px;">'+esc(e.cta)+' →</a>'
+      + '</div></div>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Events &amp; meetings</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">What’s on at Bronte</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Every event has a volunteer call attached — lend a hand and the night runs itself.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:40px 24px 64px;">'
+  +   '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px;">'+filters+'</div>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">'+cards+'</div>'
+  + '</section>';
+}
+
+function pageInvolved(){
+  var roleCards = VROLES.map(function(r){
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;border-top:5px solid #FFD928;display:flex;flex-direction:column;gap:8px;">'
+      + '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#0059A8;font-weight:500;">'+esc(r.time)+'</span>'
+      + '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:21px;color:#18323A;">'+esc(r.title)+'</strong>'
+      + '<span style="font-size:14.5px;line-height:1.5;color:#52636b;flex:1;">'+esc(r.desc)+'</span>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">'
+      +   '<span style="font-size:11.5px;background:#eaf3fb;color:#0059A8;padding:4px 9px;border-radius:999px;font-weight:600;">📍 '+esc(r.loc)+'</span>'
+      +   '<span style="font-size:11.5px;background:#f3f6f1;color:#3a4a52;padding:4px 9px;border-radius:999px;font-weight:600;">'+esc(r.skills)+'</span>'
+      + '</div></div>';
+  }).join('');
+
+  var formBlock;
+  if(state.volDone){
+    formBlock = '<div style="background:#FFFDF7;border-radius:18px;padding:36px;text-align:center;">'
+      + '<div style="font-size:42px;">🎉</div>'
+      + '<h3 style="font-family:\'Fraunces\';font-weight:700;font-size:26px;color:#002B7F;margin:10px 0 6px;">Thank you!</h3>'
+      + '<p style="color:#52636b;font-size:16px;margin:0;">We’ve got your details and a P&amp;C volunteer coordinator will be in touch with small, no-pressure ways to help.</p>'
+      + '</div>';
+  } else {
+    var inputStyle='padding:12px 14px;border:1.5px solid #d8d2c4;border-radius:11px;font-weight:400;';
+    var labelStyle='display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13.5px;color:#18323A;';
+    formBlock = '<form data-form="vol" style="background:#FFFDF7;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:16px;">'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">'
+      +   '<label style="'+labelStyle+'">Name<input name="name" placeholder="Your name" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Email<input name="email" placeholder="you@email.com" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Child’s year / class (optional)<input name="child" placeholder="e.g. Kindy, 3B" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Availability<input name="availability" placeholder="e.g. mornings, one-offs" style="'+inputStyle+'"></label>'
+      + '</div>'
+      + '<label style="'+labelStyle+'">What are you into?<input name="interests" placeholder="Events, gardening, grants, BBQ, design…" style="'+inputStyle+'"></label>'
+      + '<label style="'+labelStyle+'">Professional skills (optional)<input name="skills" placeholder="Finance, legal, building, photography…" style="'+inputStyle+'"></label>'
+      + '<label style="'+labelStyle+'">Working With Children Check status<select name="wwcc" style="'+inputStyle+'background:#fff;"><option value="">Select…</option><option>I have a current WWCC</option><option>I can get one</option><option>Not sure / prefer non-contact tasks</option></select></label>'
+      + '<label style="display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;color:#18323A;"><input type="checkbox" name="small" style="width:18px;height:18px;">I only want small, one-off tasks for now</label>'
+      + '<span data-err="vol" style="display:none;color:#c0392b;font-size:14px;font-weight:600;"></span>'
+      + '<button type="submit" style="align-self:flex-start;background:#0059A8;color:#fff;font-weight:800;font-size:16px;padding:14px 26px;border-radius:999px;border:none;">Match me with a task →</button>'
+      + '</form>';
+  }
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Pick one small thing</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Get involved — your way</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:56ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">No guilt, no traps. Choose how much you want to give — five minutes or a real role — and we’ll match you to something that fits.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:54px 24px;">'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">'+roleCards+'</div>'
+  + '</section>'
+  + '<section style="background:#9DC9E2;">'
+  +   '<div class="sec-pad" style="max-width:760px;margin:0 auto;padding:54px 24px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:32px;margin:0 0 4px;color:#002B7F;">Volunteer matcher</h2>'
+  +     '<p style="color:#1e3a4a;margin:0 0 24px;font-size:16px;">Tell us a little about you and we’ll suggest tasks that fit. No commitment — we’ll just be in touch.</p>'
+  +     formBlock
+  +   '</div>'
+  + '</section>';
+}
+
+function pageServices(){
+  var st = state.serviceTab;
+  function tabBtn(k){ return 'padding:12px 22px;border-radius:999px;font-weight:700;font-size:15px;border:none;'+(st===k?'background:#0059A8;color:#fff;':'background:#eaf3fb;color:#0059A8;'); }
+
+  var canteen = '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:start;">'
+    +   '<div>'
+    +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 8px;color:#002B7F;">Chika’s Kitchen canteen</h2>'
+    +     '<p style="font-size:16px;line-height:1.6;color:#3a4a52;">Our canteen is run by Chika’s Kitchen — fresh, healthy food the whole school can rely on. Order online the night before, or grab snacks over the counter at recess and lunch.</p>'
+    +     '<ul style="list-style:none;padding:0;margin:18px 0 0;display:flex;flex-direction:column;gap:10px;">'
+    +       '<li style="display:flex;gap:10px;font-size:15px;color:#18323A;"><span style="color:#0059A8;font-weight:800;">›</span> Open <strong style="margin-left:4px;">Wednesday, Thursday &amp; Friday</strong></li>'
+    +       '<li style="display:flex;gap:10px;font-size:15px;color:#18323A;"><span style="color:#0059A8;font-weight:800;">›</span> On site from <strong style="margin-left:4px;">8:15am</strong> and online</li>'
+    +       '<li style="display:flex;gap:10px;font-size:15px;color:#18323A;"><span style="color:#0059A8;font-weight:800;">›</span> Order via Flexischools by the night before (or 8:15am on the day)</li>'
+    +       '<li style="display:flex;gap:10px;font-size:15px;color:#18323A;"><span style="color:#0059A8;font-weight:800;">›</span> Counter snacks at recess &amp; lunch</li>'
+    +     '</ul>'
+    +     '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;">'
+    +       '<a href="https://www.flexischools.com.au/parents" target="_blank" rel="noopener" style="background:#0059A8;color:#fff;font-weight:800;font-size:15px;padding:12px 18px;border-radius:999px;">Order on Flexischools ↗</a>'
+    +       '<a href="https://bronte-p.schools.nsw.gov.au/school-life/canteen" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:15px;padding:11px 18px;border-radius:999px;">School canteen page ↗</a>'
+    +       '<a href="https://flexischools.zendesk.com/" target="_blank" rel="noopener" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:15px;padding:11px 18px;border-radius:999px;">Flexischools help ↗</a>'
+    +     '</div>'
+    +     '<p style="font-size:14px;color:#7a8890;margin-top:18px;">Canteen enquiries: <a href="mailto:c_mishima@chikaskitchen.com.au" style="color:#0059A8;font-weight:700;">c_mishima@chikaskitchen.com.au</a></p>'
+    +   '</div>'
+    +   '<div style="aspect-ratio:4/3;border-radius:20px;overflow:hidden;position:relative;border:6px solid #FFD928;">'+imgPh('Canteen food / counter at recess')+'</div>'
+    + '</div></section>';
+
+  var bac = '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:start;">'
+    +   '<div>'
+    +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 8px;color:#002B7F;">Bronte Activity Centre (BAC)</h2>'
+    +     '<p style="font-size:16px;line-height:1.6;color:#3a4a52;">BAC is the not-for-profit before-school, after-school and vacation care run for the Bronte community — a warm, safe place for kids around the school day.</p>'
+    +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px;">'
+    +       '<div style="background:#eaf3fb;border-radius:14px;padding:16px;"><span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#0059A8;">Before care</span><strong style="display:block;font-family:\'Fraunces\';font-size:18px;color:#18323A;margin-top:4px;">7:15–9:00am</strong></div>'
+    +       '<div style="background:#eaf3fb;border-radius:14px;padding:16px;"><span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#0059A8;">After care</span><strong style="display:block;font-family:\'Fraunces\';font-size:18px;color:#18323A;margin-top:4px;">3:00–6:00pm</strong></div>'
+    +       '<div style="background:#eaf3fb;border-radius:14px;padding:16px;"><span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#0059A8;">Vacation care</span><strong style="display:block;font-family:\'Fraunces\';font-size:18px;color:#18323A;margin-top:4px;">8:30am–5:30pm</strong></div>'
+    +     '</div>'
+    +     '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;">'
+    +       '<a href="https://bronteactivitycentreoosh.com/" target="_blank" rel="noopener" style="background:#0059A8;color:#fff;font-weight:800;font-size:15px;padding:12px 18px;border-radius:999px;">Visit BAC ↗</a>'
+    +       '<a href="https://bronteactivitycentreoosh.com/contact-us" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:15px;padding:11px 18px;border-radius:999px;">Contact BAC ↗</a>'
+    +       '<a href="https://bronteactivitycentreoosh.com/bac-holiday-adventures" target="_blank" rel="noopener" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:15px;padding:11px 18px;border-radius:999px;">Holiday Adventures ↗</a>'
+    +     '</div>'
+    +     '<p style="font-size:14px;color:#7a8890;margin-top:18px;line-height:1.7;">Bookings &amp; enquiries: <a href="mailto:team@bronteactivitycentreoosh.com" style="color:#0059A8;font-weight:700;">team@bronteactivitycentreoosh.com</a> · <strong>0437 011 730</strong><br>Parent committee: <a href="mailto:committee@bronteactivitycentreoosh.com" style="color:#0059A8;font-weight:700;">committee@bronteactivitycentreoosh.com</a></p>'
+    +   '</div>'
+    +   '<div style="background:#FFD928;border-radius:20px;padding:26px;">'
+    +     '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#7a5b00;font-weight:500;">BAC TRANSITION HUB</span>'
+    +     '<h3 style="font-family:\'Fraunces\';font-weight:700;font-size:23px;color:#002B7F;margin:8px 0 8px;">Should the P&amp;C run BAC?</h3>'
+    +     '<p style="font-size:15px;line-height:1.55;color:#3a2e00;margin:0 0 14px;">We surveyed families about the P&amp;C taking on before &amp; after care as a community-run, not-for-profit service. Support was strong — but it can’t happen without people.</p>'
+    +     '<p style="font-size:15px;line-height:1.55;color:#3a2e00;margin:0 0 16px;"><strong>We need 2–3 committed parent volunteers</strong> (governance, finance or childcare experience especially welcome) before the transition can proceed.</p>'
+    +     '<a href="#" data-go="involved" style="display:inline-block;background:#002B7F;color:#fff;font-weight:800;font-size:15px;padding:12px 20px;border-radius:999px;">Put your hand up →</a>'
+    +   '</div>'
+    + '</div></section>';
+
+  var uniform = '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+    + '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 8px;color:#002B7F;">Uniforms &amp; merch</h2>'
+    + '<p style="font-size:16px;line-height:1.6;color:#3a4a52;max-width:62ch;">New uniforms are ordered through PSW. The P&amp;C also runs a second-hand uniform shop — great quality, great prices, less waste. Donate outgrown uniforms to the tub outside Level 2 of Block B.</p>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px;">'
+    +   '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;">'
+    +     '<div style="font-size:26px;">👕</div>'
+    +     '<strong style="display:block;font-family:\'Fraunces\';font-size:20px;color:#18323A;margin:8px 0 6px;">New uniforms (PSW)</strong>'
+    +     '<p style="font-size:14.5px;color:#52636b;line-height:1.5;margin:0 0 14px;">Order online and have it delivered, or shop in store.</p>'
+    +     '<a href="https://www.psw.com.au/" target="_blank" rel="noopener" style="background:#0059A8;color:#fff;font-weight:700;font-size:14px;padding:10px 16px;border-radius:999px;">Order at PSW ↗</a>'
+    +   '</div>'
+    +   '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;">'
+    +     '<div style="font-size:26px;">♻</div>'
+    +     '<strong style="display:block;font-family:\'Fraunces\';font-size:20px;color:#18323A;margin:8px 0 6px;">Second-hand shop</strong>'
+    +     '<p style="font-size:14.5px;color:#52636b;line-height:1.5;margin:0 0 14px;">Run by the P&amp;C. Donation tub outside Level 2, Block B. Volunteers always welcome to sort.</p>'
+    +     '<a href="https://bronte-p.schools.nsw.gov.au/school-life/uniform" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:14px;padding:9px 16px;border-radius:999px;">Uniform info ↗</a>'
+    +   '</div>'
+    +   '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:22px;">'
+    +     '<div style="font-size:26px;">🏖</div>'
+    +     '<strong style="display:block;font-family:\'Fraunces\';font-size:20px;color:#18323A;margin:8px 0 6px;">Bronte merch</strong>'
+    +     '<p style="font-size:14.5px;color:#52636b;line-height:1.5;margin:0 0 14px;">Bronte towels, totes and engraved centenary bricks — wear your school pride and back the projects.</p>'
+    +     '<a href="#" data-go="projects" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:14px;padding:9px 16px;border-radius:999px;">See merch &amp; bricks →</a>'
+    +   '</div>'
+    + '</div></section>';
+
+  var body = st==='canteen'?canteen : st==='bac'?bac : uniform;
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 30px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Day-to-day school life</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Services</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 18px;color:rgba(255,253,247,0.92);">Canteen, before &amp; after care, and uniforms — the practical stuff, explained. Bookings &amp; orders happen on the providers’ own platforms.</p>'
+  +     '<div style="display:flex;flex-wrap:wrap;gap:10px;">'
+  +       '<button data-tab="canteen" style="'+tabBtn('canteen')+'">🍎 Canteen</button>'
+  +       '<button data-tab="bac" style="'+tabBtn('bac')+'">☀ Before &amp; After Care</button>'
+  +       '<button data-tab="uniform" style="'+tabBtn('uniform')+'">👕 Uniform &amp; Merch</button>'
+  +     '</div>'
+  +   '</div>'
+  + '</section>'
+  + body;
+}
+
+function pageProjects(){
+  var rows = PROJECTS.map(function(p){
+    var b = badge(p.status);
+    var open = !!state.acc['pr'+p.id];
+    var detail = open ? (''
+      + '<div style="padding:0 22px 22px;border-top:1px solid #f0ece1;">'
+      +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:18px;">'
+      +     '<div><span style="font-family:\'Spline Sans Mono\',monospace;font-size:11.5px;color:#0059A8;text-transform:uppercase;letter-spacing:0.04em;">Why it matters</span><p style="font-size:14.5px;line-height:1.55;color:#3a4a52;margin:6px 0 0;">'+esc(p.summary)+'</p></div>'
+      +     '<div><span style="font-family:\'Spline Sans Mono\',monospace;font-size:11.5px;color:#0059A8;text-transform:uppercase;letter-spacing:0.04em;">Next milestone</span><p style="font-size:14.5px;line-height:1.55;color:#3a4a52;margin:6px 0 0;">'+esc(p.milestone)+'</p></div>'
+      +     '<div><span style="font-family:\'Spline Sans Mono\',monospace;font-size:11.5px;color:#0059A8;text-transform:uppercase;letter-spacing:0.04em;">How families can help</span><p style="font-size:14.5px;line-height:1.55;color:#3a4a52;margin:6px 0 0;">'+esc(p.help)+'</p></div>'
+      +   '</div>'
+      +   '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">'
+      +     '<a href="#" data-go="involved" style="background:#0059A8;color:#fff;font-weight:700;font-size:14px;padding:10px 18px;border-radius:999px;">Help with this →</a>'
+      +     '<a href="#" data-go="donate" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:14px;padding:9px 18px;border-radius:999px;">Donate to priorities →</a>'
+      +   '</div>'
+      + '</div>') : '';
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;overflow:hidden;">'
+      + '<button data-acc="pr'+p.id+'" aria-expanded="'+(open?'true':'false')+'" style="width:100%;display:flex;align-items:center;gap:14px;padding:20px 22px;background:transparent;border:none;text-align:left;">'
+      +   '<span style="flex:1;display:flex;flex-direction:column;gap:7px;">'
+      +     '<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +       '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:'+b.statusBg+';color:'+b.statusColor+';">'+esc(p.status)+'</span>'
+      +       '<span style="font-size:11.5px;color:#7a8890;font-family:\'Spline Sans Mono\',monospace;">Priority: '+esc(p.priority)+'</span>'
+      +     '</span>'
+      +     '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:22px;color:#18323A;line-height:1.1;">'+esc(p.title)+'</strong>'
+      +   '</span>'
+      +   '<span style="font-size:24px;color:#0059A8;flex:none;">'+(open?'–':'+')+'</span>'
+      + '</button>'
+      + detail
+      + '</div>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Where your support goes</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Projects &amp; impact</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:56ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Real projects, honest status, and a clear way to help each one. Tap a project to see what we’re doing and what’s next.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1000px;margin:0 auto;padding:48px 24px 64px;">'
+  +   '<div style="display:flex;flex-direction:column;gap:14px;">'+rows+'</div>'
+  + '</section>';
+}
+
+function pageMeetings(){
+  var info = [
+    ['What meetings are for','Deciding together how P&amp;C funds and effort support the school — events, projects, services.'],
+    ['Who can attend','Every parent and carer. Listen in, ask questions, or just have a cuppa. Online option available.'],
+    ['$2 &amp; voting','A $2 annual membership makes you a financial member who can vote on motions and spending.'],
+    ['Spending principles','Transparent, school-aligned, and voted on. Reimbursements need a receipt and approval.'],
+  ].map(function(c){
+    return '<div style="background:#f3f6f1;border-radius:16px;padding:20px;"><strong style="font-family:\'Fraunces\';font-size:18px;color:#002B7F;">'+c[0]+'</strong><p style="font-size:14px;color:#52636b;line-height:1.5;margin:8px 0 0;">'+c[1]+'</p></div>';
+  }).join('');
+
+  var meetings = MEETINGS.map(function(m){
+    var open = !!state.acc['mt'+m.id];
+    var pill = m.status==='upcoming' ? 'background:#FFD928;color:#002B7F;' : 'background:#eef0ee;color:#6b7780;';
+    var pillLabel = m.status==='upcoming' ? 'Next meeting' : 'Archived';
+    var detail = open ? (''
+      + '<div style="padding:0 20px 20px;border-top:1px solid #f0ece1;">'
+      +   '<p style="font-size:15px;line-height:1.6;color:#3a4a52;margin:16px 0 14px;"><strong style="color:#002B7F;">In plain English: </strong>'+esc(m.summary)+'</p>'
+      +   '<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+      +     '<a href="#" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:13.5px;padding:9px 15px;border-radius:999px;">📄 Agenda</a>'
+      +     '<a href="#" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:13.5px;padding:9px 15px;border-radius:999px;">📝 Minutes</a>'
+      +     '<a href="#" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:13.5px;padding:9px 15px;border-radius:999px;">✅ Actions</a>'
+      +     '<a href="#" style="border:1.5px solid #d8d2c4;color:#3a4a52;font-weight:700;font-size:13.5px;padding:9px 15px;border-radius:999px;">📦 Meeting pack</a>'
+      +   '</div>'
+      + '</div>') : '';
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:16px;overflow:hidden;">'
+      + '<button data-acc="mt'+m.id+'" aria-expanded="'+(open?'true':'false')+'" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px 20px;background:transparent;border:none;text-align:left;">'
+      +   '<span style="flex:1;">'
+      +     '<span style="font-size:10.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;'+pill+'">'+pillLabel+'</span>'
+      +     '<strong style="display:block;font-family:\'Fraunces\';font-weight:600;font-size:20px;color:#18323A;margin-top:8px;">'+esc(m.label)+'</strong>'
+      +     '<span style="font-size:13px;color:#7a8890;font-family:\'Spline Sans Mono\',monospace;">'+esc(m.date)+'</span>'
+      +   '</span>'
+      +   '<span style="font-size:24px;color:#0059A8;flex:none;">'+(open?'–':'+')+'</span>'
+      + '</button>'
+      + detail
+      + '</div>';
+  }).join('');
+
+  var committee = COMMITTEE.map(function(c){
+    return '<div style="background:#fff;border-radius:14px;padding:18px;display:flex;align-items:center;gap:13px;">'
+      + '<span style="width:44px;height:44px;flex:none;border-radius:50%;background:#0059A8;color:#FFD928;font-family:\'Fraunces\';font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;">'+esc(c.name.charAt(0))+'</span>'
+      + '<span style="line-height:1.3;"><strong style="display:block;font-size:15px;color:#18323A;">'+esc(c.name)+'</strong><small style="color:#7a8890;font-size:12.5px;">'+esc(c.role)+'</small></span></div>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Open &amp; transparent</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Meetings &amp; governance</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:56ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Friendlier than it sounds. Anyone can come, $2 gets you a vote, and every agenda, minute and action lives here.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px 24px;">'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;">'+info+'</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:32px 24px;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 18px;color:#002B7F;">Meeting archive</h2>'
+  +   '<div style="display:flex;flex-direction:column;gap:12px;">'+meetings+'</div>'
+  +   '<p style="font-size:13px;color:#9aa6ac;margin-top:14px;font-family:\'Spline Sans Mono\',monospace;">Document links are placeholders — committee to attach agendas, minutes, action lists and packs (e.g. the 15 June 2026 pack).</p>'
+  + '</section>'
+  + '<section style="background:#f3f6f1;">'
+  +   '<div class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 18px;color:#002B7F;">Your 2026 committee</h2>'
+  +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">'+committee+'</div>'
+  +     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:24px;">'
+  +       '<a href="#" data-go="contact" style="background:#fff;border:1.5px solid #ece7da;border-radius:14px;padding:18px;"><strong style="font-family:\'Fraunces\';font-size:17px;color:#002B7F;">Submit an agenda item</strong><p style="font-size:13.5px;color:#52636b;margin:6px 0 0;">Want something raised? Send it through before the meeting.</p></a>'
+  +       '<a href="#" data-go="contact" style="background:#fff;border:1.5px solid #ece7da;border-radius:14px;padding:18px;"><strong style="font-family:\'Fraunces\';font-size:17px;color:#002B7F;">Reimbursement form</strong><p style="font-size:13.5px;color:#52636b;margin:6px 0 0;">Spent your own money for the P&amp;C? Claim it back with a receipt.</p></a>'
+  +       '<a href="#" data-go="involved" style="background:#fff;border:1.5px solid #ece7da;border-radius:14px;padding:18px;"><strong style="font-family:\'Fraunces\';font-size:17px;color:#002B7F;">Volunteer interest</strong><p style="font-size:13.5px;color:#52636b;margin:6px 0 0;">Register your interest in helping out or joining a subcommittee.</p></a>'
+  +     '</div>'
+  +     '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;">'
+  +       '<a href="https://abr.business.gov.au/ABN/View/44706118770" target="_blank" rel="noopener" style="font-size:13.5px;color:#0059A8;font-weight:700;">ABN Lookup ↗</a><span style="color:#cbd3d7;">·</span>'
+  +       '<a href="https://www.acnc.gov.au/charity/charities/d19c3e5e-38af-e811-a963-000d3ad24077/profile" target="_blank" rel="noopener" style="font-size:13.5px;color:#0059A8;font-weight:700;">ACNC charity profile ↗</a><span style="color:#cbd3d7;">·</span>'
+  +       '<a href="https://www.pandc.org.au/" target="_blank" rel="noopener" style="font-size:13.5px;color:#0059A8;font-weight:700;">P&amp;C Federation NSW ↗</a><span style="color:#cbd3d7;">·</span>'
+  +       '<a href="https://bronte-p.schools.nsw.gov.au/school-life/community-involvement" target="_blank" rel="noopener" style="font-size:13.5px;color:#0059A8;font-weight:700;">School P&amp;C page ↗</a>'
+  +     '</div>'
+  +   '</div>'
+  + '</section>';
+}
+
+function pageDonate(){
+  var tiers = SPONSOR_TIERS.map(function(t){
+    return '<div style="display:flex;gap:10px;align-items:baseline;font-size:14.5px;color:#3a4a52;"><span style="color:#FFD928;font-weight:900;font-size:16px;">★</span><span><strong style="color:#18323A;">'+esc(t.name)+'</strong> — '+esc(t.desc)+'</span></div>';
+  }).join('');
+
+  var supporters = SPONSORS.map(function(s){
+    return '<a class="sponsor-link" href="'+escAttr(s.web)+'" target="_blank" rel="noopener" style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;">'
+      + '<div style="aspect-ratio:5/2;background:repeating-linear-gradient(45deg,#eef2f5 0,#eef2f5 9px,#f6f8fa 9px,#f6f8fa 18px);border-radius:10px;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;"><span style="font-family:\'Fraunces\';font-weight:600;font-size:16px;color:#18323A;">'+esc(s.name)+'</span></div>'
+      + '<span style="font-size:11.5px;font-weight:700;color:#0059A8;text-transform:uppercase;letter-spacing:0.03em;">'+esc(s.tier)+'</span>'
+      + '<span style="font-size:13.5px;color:#52636b;line-height:1.45;">'+esc(s.offer)+'</span></a>';
+  }).join('');
+
+  var formBlock;
+  if(state.spDone){
+    formBlock = '<div style="background:#FFFDF7;border-radius:18px;padding:36px;text-align:center;">'
+      + '<div style="font-size:42px;">🤝</div>'
+      + '<h3 style="font-family:\'Fraunces\';font-weight:700;font-size:26px;color:#002B7F;margin:10px 0 6px;">Thanks for backing Bronte!</h3>'
+      + '<p style="color:#52636b;font-size:16px;margin:0;">Our sponsorship team will reach out to talk through how we can work together.</p>'
+      + '</div>';
+  } else {
+    var inputStyle='padding:12px 14px;border:1.5px solid #d8d2c4;border-radius:11px;font-weight:400;';
+    var labelStyle='display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13.5px;color:#18323A;';
+    formBlock = '<form data-form="sp" style="background:#FFFDF7;border-radius:18px;padding:28px;display:flex;flex-direction:column;gap:16px;">'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">'
+      +   '<label style="'+labelStyle+'">Business name<input name="business" placeholder="Your business" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Contact name<input name="contact" placeholder="Your name" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Email<input name="email" placeholder="you@business.com" style="'+inputStyle+'"></label>'
+      +   '<label style="'+labelStyle+'">Website / social<input name="web" placeholder="@handle or URL" style="'+inputStyle+'"></label>'
+      + '</div>'
+      + '<label style="'+labelStyle+'">Type of support<select name="type" style="'+inputStyle+'background:#fff;"><option>Major Project Sponsor</option><option>Event Sponsor</option><option selected>Local Business Supporter</option><option>Prize / Auction Donor</option><option>In-kind Donor</option><option>Parent Business Directory Listing</option></select></label>'
+      + '<div style="border:1.5px dashed #b9c6cf;border-radius:12px;padding:18px;text-align:center;background:#f6f9fb;"><span style="font-family:\'Spline Sans Mono\',monospace;font-size:13px;color:#7a8890;">+ Logo upload (placeholder)</span></div>'
+      + '<label style="'+labelStyle+'">Message<textarea name="message" rows="3" placeholder="How would you like to help?" style="'+inputStyle+'resize:vertical;"></textarea></label>'
+      + '<span data-err="sp" style="display:none;color:#c0392b;font-size:14px;font-weight:600;"></span>'
+      + '<button type="submit" style="align-self:flex-start;background:#0059A8;color:#fff;font-weight:800;font-size:16px;padding:14px 26px;border-radius:999px;border:none;">Submit interest →</button>'
+      + '</form>';
+  }
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;position:relative;overflow:hidden;">'
+  +   '<div style="position:absolute;bottom:-40px;left:-30px;width:220px;height:220px;border-radius:50%;background:rgba(255,217,40,0.16);"></div>'
+  +   '<div class="sec-pad" style="position:relative;max-width:1200px;margin:0 auto;padding:52px 24px 48px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Support the school</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:60px;line-height:0.98;letter-spacing:-0.02em;margin:16px 0 0;">Bronte backs Bronte</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:56ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Donate to a current priority, or partner with us as a business. Every dollar and every in-kind gift goes straight back into the school community.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">'
+  +     '<div style="background:#002B7F;color:#FFFDF7;border-radius:20px;padding:26px;">'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:24px;margin:0 0 8px;">Donate to current priorities</h2>'
+  +       '<p style="font-size:15px;line-height:1.55;color:rgba(255,253,247,0.85);margin:0 0 16px;">Your gift supports the hall cooling, canteen, music program and grounds. The <strong>Bronte Public School P&amp;C Association Building Fund</strong> is listed as DGR Item 1 (from 15 June 2016) on ABN Lookup.</p>'
+  +       '<a href="'+HUMANITIX_HOST+'" target="_blank" rel="noopener" style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:15px;padding:13px 22px;border-radius:999px;">Donate now ↗</a>'
+  +     '</div>'
+  +     '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:20px;padding:26px;">'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:24px;margin:0 0 10px;color:#002B7F;">Ways to partner</h2>'
+  +       '<div style="display:flex;flex-direction:column;gap:8px;">'+tiers+'</div>'
+  +     '</div>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:24px 24px 48px;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:30px;margin:0 0 6px;color:#002B7F;">Our supporters</h2>'
+  +   '<p style="color:#52636b;margin:0 0 22px;">Businesses and partners backing Bronte. Some are confirmed; others are pending.</p>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">'+supporters+'</div>'
+  + '</section>'
+  + '<section style="background:#9DC9E2;">'
+  +   '<div class="sec-pad" style="max-width:760px;margin:0 auto;padding:54px 24px;">'
+  +     '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:32px;margin:0 0 4px;color:#002B7F;">Become a supporter</h2>'
+  +     '<p style="color:#1e3a4a;margin:0 0 24px;font-size:16px;">Tell us how you’d like to help and we’ll be in touch with the right opportunity.</p>'
+  +     formBlock
+  +   '</div>'
+  + '</section>';
+}
+
+function pageNews(){
+  var cats = ['All','Events','Projects','BAC','Canteen','Grants','Meetings','Sponsors','New Families'];
+  var nf = state.newsFilter;
+  var filters = cats.map(function(c){
+    var st = 'padding:7px 14px;border-radius:999px;font-weight:600;font-size:13.5px;border:1.5px solid '+(nf===c?'#0059A8':'#d8d2c4')+';background:'+(nf===c?'#0059A8':'#fff')+';color:'+(nf===c?'#fff':'#18323A')+';';
+    return '<button data-newsfilter="'+escAttr(c)+'" style="'+st+'">'+esc(c)+'</button>';
+  }).join('');
+
+  var cards = UPDATES.filter(function(u){ return nf==='All' || u.cat===nf; }).map(function(u){
+    return '<a class="news-card" href="#" data-go="'+u.page+'" style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;">'
+      + '<div style="position:relative;aspect-ratio:16/9;">'+imgPh(u.cat)
+      +   '<span style="position:absolute;top:10px;left:10px;font-size:10.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:#FFD928;color:#002B7F;">'+esc(u.cat)+'</span>'
+      + '</div>'
+      + '<div style="padding:18px;display:flex;flex-direction:column;gap:7px;flex:1;">'
+      +   '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#7a8890;">'+esc(u.date)+'</span>'
+      +   '<strong style="font-family:\'Fraunces\';font-weight:600;font-size:20px;line-height:1.15;color:#18323A;">'+esc(u.title)+'</strong>'
+      +   '<span style="font-size:14.5px;line-height:1.5;color:#52636b;flex:1;">'+esc(u.summary)+'</span>'
+      +   '<span style="font-weight:700;font-size:14px;color:#0059A8;margin-top:4px;">Read more →</span>'
+      + '</div></a>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Latest</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">News &amp; updates</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">What’s happening across events, projects, BAC, canteen, grants and meetings.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1200px;margin:0 auto;padding:40px 24px 64px;">'
+  +   '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px;">'+filters+'</div>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">'+cards+'</div>'
+  + '</section>';
+}
+
+function pageContact(){
+  var emails = [
+    ['General P&amp;C','mailto:brontepandc@gmail.com','brontepandc@gmail.com',false],
+    ['BAC (bookings)','mailto:team@bronteactivitycentreoosh.com','team@bronteactivitycentreoosh.com',false],
+    ['BAC committee','mailto:committee@bronteactivitycentreoosh.com','committee@bronteactivitycentreoosh.com',false],
+    ['Canteen','mailto:c_mishima@chikaskitchen.com.au','c_mishima@chikaskitchen.com.au',false],
+    ['School (separate to P&amp;C)','https://bronte-p.schools.nsw.gov.au/contact-us','School contact page ↗',true],
+  ].map(function(e){
+    var link = e[3] ? '<a href="'+e[1]+'" target="_blank" rel="noopener" style="color:#0059A8;font-weight:700;font-size:14.5px;">'+e[2]+'</a>'
+                    : '<a href="'+e[1]+'" style="color:#0059A8;font-weight:700;font-size:14.5px;">'+e[2]+'</a>';
+    return '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:14px;padding:16px;"><strong style="font-size:14px;color:#18323A;">'+e[0]+'</strong><br>'+link+'</div>';
+  }).join('');
+
+  var formBlock;
+  if(state.ctDone){
+    formBlock = '<div style="background:#f3f6f1;border-radius:18px;padding:32px;text-align:center;">'
+      + '<div style="font-size:38px;">📬</div>'
+      + '<h3 style="font-family:\'Fraunces\';font-weight:700;font-size:22px;color:#002B7F;margin:8px 0 6px;">Message sent</h3>'
+      + '<p style="color:#52636b;font-size:15px;margin:0;">Thanks for getting in touch — we’ll reply as soon as a volunteer can.</p>'
+      + '</div>';
+  } else {
+    var inputStyle='padding:12px 14px;border:1.5px solid #d8d2c4;border-radius:11px;font-weight:400;background:#fff;';
+    var labelStyle='display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13.5px;color:#18323A;';
+    formBlock = '<form data-form="ct" style="background:#f3f6f1;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;">'
+      + '<label style="'+labelStyle+'">Name<input name="name" placeholder="Your name" style="'+inputStyle+'"></label>'
+      + '<label style="'+labelStyle+'">Email<input name="email" placeholder="you@email.com" style="'+inputStyle+'"></label>'
+      + '<label style="'+labelStyle+'">Topic<select name="topic" style="'+inputStyle+'"><option>General enquiry</option><option>Events</option><option>Volunteering</option><option>Sponsorship</option><option>Agenda item</option><option>Reimbursement</option></select></label>'
+      + '<label style="'+labelStyle+'">Message<textarea name="message" rows="4" placeholder="How can we help?" style="'+inputStyle+'resize:vertical;"></textarea></label>'
+      + '<span data-err="ct" style="display:none;color:#c0392b;font-size:14px;font-weight:600;"></span>'
+      + '<button type="submit" style="align-self:flex-start;background:#0059A8;color:#fff;font-weight:800;font-size:16px;padding:14px 26px;border-radius:999px;border:none;">Send message →</button>'
+      + '</form>';
+  }
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Say hello</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Contact us</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">Reach the right person fast. Services have their own contacts — they’re run separately from the P&amp;C.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;align-items:start;">'
+  +     '<div>'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:26px;margin:0 0 16px;color:#002B7F;">Who to email</h2>'
+  +       '<div style="display:flex;flex-direction:column;gap:12px;">'+emails+'</div>'
+  +       '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">'
+  +         '<a href="https://www.instagram.com/brontepandc/" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:13.5px;padding:9px 14px;border-radius:999px;">Instagram ↗</a>'
+  +         '<a href="https://www.facebook.com/BrontePandC" target="_blank" rel="noopener" style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:13.5px;padding:9px 14px;border-radius:999px;">Facebook ↗</a>'
+  +       '</div>'
+  +     '</div>'
+  +     '<div>'
+  +       '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:26px;margin:0 0 16px;color:#002B7F;">Send a message</h2>'
+  +       formBlock
+  +     '</div>'
+  +   '</div>'
+  + '</section>';
+}
+
+function pageStyle(){
+  var colours = PALETTE.map(function(c){
+    return '<div style="border:1.5px solid #ece7da;border-radius:14px;overflow:hidden;">'
+      + '<div style="height:84px;background:'+c.hex+';border-bottom:1px solid rgba(0,0,0,0.06);"></div>'
+      + '<div style="padding:12px;"><strong style="display:block;font-size:14px;color:#18323A;">'+esc(c.name)+'</strong><span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#7a8890;">'+esc(c.hex)+'</span></div></div>';
+  }).join('');
+
+  return ''
+  + '<section style="background:#0059A8;color:#FFFDF7;">'
+  +   '<div class="sec-pad" style="max-width:1200px;margin:0 auto;padding:48px 24px 44px;">'
+  +     '<span style="display:inline-block;background:#FFD928;color:#002B7F;font-weight:800;font-size:12.5px;letter-spacing:0.04em;padding:5px 12px;border-radius:999px;white-space:nowrap;">Brand &amp; UI kit</span>'
+  +     '<h1 style="font-family:\'Fraunces\';font-weight:900;font-size:52px;line-height:1.0;letter-spacing:-0.02em;margin:16px 0 0;">Style guide</h1>'
+  +     '<p style="font-size:19px;line-height:1.45;max-width:54ch;margin:14px 0 0;color:rgba(255,253,247,0.92);">The blue-and-yellow Bronte identity — colours, type, and the components used across the site.</p>'
+  +   '</div>'
+  + '</section>'
+  + '<section class="sec-pad" style="max-width:1100px;margin:0 auto;padding:48px 24px;">'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:28px;margin:0 0 18px;color:#002B7F;">Colours</h2>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">'+colours+'</div>'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:28px;margin:44px 0 18px;color:#002B7F;">Typography</h2>'
+  +   '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:28px;">'
+  +     '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#7a8890;">Fraunces — headings</span>'
+  +     '<p style="font-family:\'Fraunces\';font-weight:900;font-size:46px;line-height:1.05;color:#002B7F;margin:6px 0 4px;">Warmer, easier, more fun</p>'
+  +     '<p style="font-family:\'Fraunces\';font-weight:600;font-size:26px;color:#18323A;margin:0 0 22px;">Bronte backs Bronte</p>'
+  +     '<span style="font-family:\'Spline Sans Mono\',monospace;font-size:12px;color:#7a8890;">Manrope — body &amp; UI</span>'
+  +     '<p style="font-size:17px;line-height:1.6;color:#3a4a52;margin:6px 0 0;max-width:60ch;">The P&amp;C is just parents making school life better. Body copy stays clear and friendly — parent-to-parent, never corporate. Spline Sans Mono adds quiet structure to labels, dates and metadata.</p>'
+  +   '</div>'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:28px;margin:44px 0 18px;color:#002B7F;">Buttons</h2>'
+  +   '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:24px;">'
+  +     '<span style="background:#FFD928;color:#002B7F;font-weight:800;font-size:15px;padding:13px 22px;border-radius:999px;">Primary (yellow)</span>'
+  +     '<span style="background:#0059A8;color:#fff;font-weight:800;font-size:15px;padding:13px 22px;border-radius:999px;">Secondary (blue)</span>'
+  +     '<span style="border:1.5px solid #0059A8;color:#0059A8;font-weight:700;font-size:15px;padding:12px 22px;border-radius:999px;">Outline</span>'
+  +     '<span style="background:#FFFDF7;color:#0059A8;font-weight:800;font-size:15px;padding:13px 22px;border-radius:999px;border:1.5px solid #ece7da;">On-blue light</span>'
+  +   '</div>'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:28px;margin:44px 0 18px;color:#002B7F;">Badges &amp; status</h2>'
+  +   '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:24px;">'
+  +     '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:#e3f5ea;color:#1f7a4d;">Funded</span>'
+  +     '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:#eaf3fb;color:#0059A8;">In progress</span>'
+  +     '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:#fdf1dc;color:#b06a00;">Grant pending</span>'
+  +     '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:#eef0ee;color:#6b7780;">Past event</span>'
+  +     '<span style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:#FFD928;color:#002B7F;">Next meeting</span>'
+  +   '</div>'
+  +   '<h2 style="font-family:\'Fraunces\';font-weight:700;font-size:28px;margin:44px 0 18px;color:#002B7F;">Cards, forms &amp; image treatment</h2>'
+  +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">'
+  +     '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:20px;border-top:5px solid #FFD928;"><strong style="font-family:\'Fraunces\';font-size:19px;color:#18323A;">Card</strong><p style="font-size:14px;color:#52636b;margin:8px 0 0;line-height:1.5;">Warm white, soft border, generous radius. Yellow top-trim for emphasis.</p></div>'
+  +     '<div style="background:#fff;border:1.5px solid #ece7da;border-radius:18px;padding:20px;"><label style="display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px;color:#18323A;">Input<input placeholder="Type here…" style="padding:11px 13px;border:1.5px solid #d8d2c4;border-radius:11px;font-weight:400;"></label></div>'
+  +     '<div style="border-radius:18px;overflow:hidden;position:relative;aspect-ratio:4/3;border:5px solid #FFD928;">'+imgPh('image treatment — yellow frame')+'</div>'
+  +   '</div>'
+  + '</section>';
+}
+
+var PAGES = {
+  home:pageHome, new:pageNew, whatson:pageWhatsOn, involved:pageInvolved, services:pageServices,
+  projects:pageProjects, meetings:pageMeetings, donate:pageDonate, news:pageNews, contact:pageContact, style:pageStyle,
+};
+
+/* ---------- render + events ---------- */
+function render(){
+  var pageFn = PAGES[state.page] || pageHome;
+  var html = ''
+    + '<div style="min-height:100vh;display:flex;flex-direction:column;">'
+    +   renderHeader()
+    +   renderMobileMenu()
+    +   '<main style="flex:1;">'+pageFn()+'</main>'
+    +   renderFooter()
+    +   renderMobileBar()
+    + '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function go(page){ state.page = page; state.menuOpen = false; render(); try{ window.scrollTo(0,0); }catch(e){} }
+
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-go],[data-act],[data-acc],[data-tab],[data-evfilter],[data-newsfilter]');
+  if(!el) return;
+  if(el.hasAttribute('data-go')){ e.preventDefault(); go(el.getAttribute('data-go')); return; }
+  if(el.getAttribute('data-act')==='toggleMenu'){ e.preventDefault(); state.menuOpen=!state.menuOpen; render(); return; }
+  if(el.hasAttribute('data-acc')){ e.preventDefault(); var id=el.getAttribute('data-acc'); state.acc[id]=!state.acc[id]; render(); return; }
+  if(el.hasAttribute('data-tab')){ e.preventDefault(); state.serviceTab=el.getAttribute('data-tab'); render(); return; }
+  if(el.hasAttribute('data-evfilter')){ e.preventDefault(); state.eventFilter=el.getAttribute('data-evfilter'); render(); return; }
+  if(el.hasAttribute('data-newsfilter')){ e.preventDefault(); state.newsFilter=el.getAttribute('data-newsfilter'); render(); return; }
+});
+
+function showErr(which, msg){
+  var span = document.querySelector('[data-err="'+which+'"]');
+  if(span){ span.textContent = msg; span.style.display='block'; }
+}
+
+document.addEventListener('submit', function(e){
+  var form = e.target.closest('form[data-form]');
+  if(!form) return;
+  e.preventDefault();
+  var which = form.getAttribute('data-form');
+  function val(name){ var f=form.querySelector('[name="'+name+'"]'); return f? f.value.trim() : ''; }
+  if(which==='vol'){
+    if(!val('name') || !validEmail(val('email'))){ showErr('vol','Please add your name and a valid email.'); return; }
+    state.volDone=true; render();
+  } else if(which==='sp'){
+    if(!val('business') || !validEmail(val('email'))){ showErr('sp','Please add a business name and a valid email.'); return; }
+    state.spDone=true; render();
+  } else if(which==='ct'){
+    if(!val('name') || !validEmail(val('email')) || !val('message')){ showErr('ct','Please add your name, a valid email and a message.'); return; }
+    state.ctDone=true; render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>

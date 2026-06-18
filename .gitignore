@@ -1,0 +1,5 @@
+# Local dev tooling for the in-app preview — not part of the deployed site
+.claude/
+
+# macOS
+.DS_Store
